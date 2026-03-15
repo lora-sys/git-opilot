@@ -1,0 +1,27 @@
+# Development Docker Image
+# Fast rebuilds with hot-reload via docker-compose
+
+FROM node:20-alpine AS dev
+
+# Install system dependencies for git operations only
+RUN apk add --no-cache \
+    git \
+    bash
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install all dependencies (including devDependencies)
+# Use npm for simplicity; bun.lockb will be used automatically if present
+RUN npm ci
+
+# Copy source code (mounted anyway via volumes)
+COPY . .
+
+# Expose for debugging if needed
+EXPOSE 9229
+
+# Default: start development server with hot-reload
+CMD ["npm", "run", "dev"]

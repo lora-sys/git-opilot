@@ -1,0 +1,42 @@
+# Simplified Dockerfile for quick builds
+# Use this if you need faster builds and don't need multi-stage
+
+FROM node:20-alpine
+
+# Install required system libraries for native modules
+RUN apk add --no-cache \
+    libsecret \
+    git \
+    bash \
+    curl \
+    python3 \
+    make \
+    g++
+
+# Create non-root user
+RUN addgroup -g 1001 -s git-copilot && \
+    adduser -u 1001 -S git-copilot -G git-copilot
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source and build
+COPY . .
+RUN npm run build
+
+# Switch user
+USER git-copilot
+RUN mkdir -p /home/git-copilot/.git-copilot
+
+ENV HOME=/home/git-copilot
+ENV GIT_COPILOT_CONFIG=/home/git-copilot/.git-copilot/config.yaml
+
+# Create symlink
+RUN ln -s /app/dist/cli/index.js /usr/local/bin/git-copilot
+
+CMD ["git-copilot", "--help"]

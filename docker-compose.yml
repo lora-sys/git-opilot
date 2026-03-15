@@ -1,0 +1,41 @@
+# 🐳 Docker Compose for Git Copilot
+# Usage:
+#   docker-compose up --profile dev    # Start development environment
+#   docker-compose run git-copilot    # Run a command
+
+services:
+  # Development service
+  git-copilot-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: git-copilot-dev
+    volumes:
+      - .:/app
+      - ~/.git-copilot:/root/.git-copilot
+    working_dir: /app
+    environment:
+      - NODE_ENV=development
+      - GIT_COPILOT_CONFIG=/root/.git-copilot/config.yaml
+    command: npm run dev
+    stdin_open: true
+    tty: true
+    profiles: ["dev"]
+
+  # Production service
+  git-copilot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: git-copilot
+    volumes:
+      - .:/workspace:ro
+      - ~/.git-copilot:/root/.git-copilot
+    working_dir: /workspace
+    environment:
+      - NODE_ENV=production
+      - GIT_COPILOT_CONFIG=/root/.git-copilot/config.yaml
+    entrypoint: ["git-copilot"]
+    stdin_open: true
+    tty: true

@@ -1,0 +1,66 @@
+{
+  "name": "git-copilot",
+  "version": "0.1.0",
+  "description": "Intelligent CLI code collaboration assistant with multi-agent parallel analysis",
+  "main": "dist/index.js",
+  "bin": {
+    "git-copilot": "dist/cli/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/cli/index.js",
+    "build": "tsc",
+    "start": "node dist/cli/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*\"",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist coverage"
+  },
+  "keywords": [
+    "git",
+    "code-review",
+    "ai",
+    "llm",
+    "multi-agent",
+    "pocketflow",
+    "beads",
+    "cli",
+    "terminal",
+    "ink",
+    "security",
+    "static-analysis"
+  ],
+  "author": "git-copilot team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "simple-git": "^3.22.0",
+    "yaml": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.6",
+    "prettier": "^3.3.2",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/git-copilot"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/git-copilot/issues"
+  },
+  "homepage": "https://github.com/your-org/git-copilot#readme"
+}

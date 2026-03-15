@@ -1,0 +1,52 @@
+# Git Copilot Configuration Schema
+# This file documents the configuration structure
+# The actual config is stored at ~/.git-copilot/config.yaml
+
+version: 1
+
+# LLM Providers
+providers:
+  - id: string              # Unique provider ID
+    name: string            # Provider name (e.g., "openai", "anthropic")
+    baseUrl: string         # API base URL
+    apiKeyEncrypted: string # Encrypted key (keytar::stored marker)
+    model: string           # Default model to use
+    maxTokens: number       # Max tokens for this provider
+
+activeProvider: string      # Currently active provider ID
+
+# Review Settings
+review:
+  concurrentAgents: number  # Number of parallel agents (1-8)
+  timeout: number          # Timeout in seconds
+  maxFiles: number         # Maximum files to analyze
+  ignore:
+    - string              # Glob patterns to ignore
+
+# Output Configuration
+output:
+  format: terminal | markdown | html | json  # Default output format
+  directory: string       # Report output directory
+  theme: string?          # Theme name for HTML reports
+
+# User Interface
+ui:
+  theme: default | dark | light
+  colors: boolean         # Enable colored output
+  animations: boolean     # Show progress animations
+  language: en | zh       # Interface language
+
+# Claude Skills
+skills:
+  paths:                 # Custom skill paths
+    - string
+  builtin:               # Built-in skills to auto-load
+    - string
+
+# Beads Memory System
+beads:
+  maxContextTokens: number              # Max tokens for context injection
+  longTermRetentionDays: number         # Retention period in days
+  embeddingModel: string                # Local embedding model name
+  crossAgentSharing: boolean            # Enable cross-agent memory
+  semanticSearchThreshold: number       # Similarity threshold (0-1)
