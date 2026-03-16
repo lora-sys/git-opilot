@@ -50,6 +50,7 @@
   ],
   "dependencies": {
     "axios": "^1.6.0",
+    "better-sqlite3": "^12.8.0",
     "blessed": "^0.1.81",
     "chalk": "^5.3.0",
     "cli-progress": "^3.12.0",
