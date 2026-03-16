@@ -29,7 +29,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Status
 
-This is a **greenfield project**. The codebase does not yet exist. The PRD (v1.1) defines the complete product specification, architecture, and implementation milestones (M1-M7). Development should follow the staged approach outlined in Section 7.
+**M1 (Foundation) is COMPLETE.** Core infrastructure is in place:
+- Package setup with TypeScript, ESLint, Prettier, Vitest
+- Configuration management (JSON-based, with base64 encryption placeholder)
+- Git data collection via simple-git wrapper
+- CLI skeleton with Commander.js (init, config, review, graph, dashboard, export, skills)
+
+**Current Phase:** M2 - LLM Adapter Layer & Beads Integration (In Progress)
+
+A comprehensive implementation plan has been created in `IMPLEMENTATION-PLAN.md`. This document provides:
+- Detailed file-by-file breakdown for each milestone (M1-M7)
+- Step-by-step implementation instructions
+- Testing strategy (unit, integration, E2E)
+- Risk assessment and mitigations
+- Success criteria per milestone
+- Estimated 10 weeks to v1.0 release
+
+**Before writing any code:**
+1. Read `IMPLEMENTATION-PLAN.md` thoroughly
+2. Understand the Beads dual-system architecture (external + custom)
+3. Review PocketFlow DAG workflow design
+4. Plan around the 7 milestones (don't skip ahead)
+
+Start implementation with **M1 Phase 1** in the plan.
 
 ## Repository Structure (Planned)
 
@@ -548,17 +570,70 @@ Key sections of the PRD to reference:
 
 ## Implementation Order (Milestones)
 
-Follow the PRD's staged approach:
+**IMPORTANT:** Follow the detailed step-by-step plan in `IMPLEMENTATION-PLAN.md`. This section provides a high-level overview.
+
+### Milestone Progression
 
 1. **M1** (Weeks 1-2): CLI skeleton, config system, Git data collection
-2. **M2** (Weeks 3-4): LLM Adapter layer + Basic agent framework (3 providers) + **Beads integration (task coordination + custom memory)**
-3. **M3** (Weeks 5-6): PocketFlow parallel execution + all 7 agents + beads cross-agent integration
-4. **M4** (Week 7): ReportWriter + Terminal/MD/HTML + built-in skills
-5. **M5** (Week 8): Git graph + dashboard + web-artifacts-builder
-6. **M6** (Week 9): All export formats (docx/PDF/PPT/XLSX) + doc-coauthoring
-7. **M7** (Week 10): Release pipeline + npm/pipx/Homebrew publishing
+   - Package setup (package.json, tsconfig, eslint, prettier)
+   - Config manager with YAML + keytar encryption
+   - Git collector (simple-git wrapper)
+   - Basic CLI commands: init, config, graph (stub)
+   - **Deliverable:** Working `git-copilot init` and `git-copilot graph`
 
-**Note on Beads**: M2 delivers core beads integration (external library + custom memory). Semantic search (embeddings) is deferred to v1.1 to simplify MVP.
+2. **M2** (Weeks 3-4): LLM Adapter layer + Basic agent framework (3 providers) + **Beads integration**
+   - LLM adapters: OpenAI, Anthropic, Ollama
+   - LLM factory pattern
+   - Beads external client (steveyegge/beads integration)
+   - Custom memory system (SQLite findings store)
+   - BaseAgent framework
+   - CodeQualityAgent (first agent)
+   - **Deliverable:** Single agent review runs with memory
+
+3. **M3** (Weeks 5-6): PocketFlow parallel execution + all 7 agents + beads cross-agent integration
+   - PocketFlow DAG workflow (AsyncParallelBatchNode, Aggregator, ReportWriter)
+   - Implement remaining 5 agents:
+     - SecurityAgent (OWASP)
+     - PerformanceAgent (complexity, N+1)
+     - ArchitectureAgent (design patterns, deps)
+     - DependencyAgent (CVE, outdated)
+     - GitHistoryAgent (commit hygiene)
+   - Full Beads integration (task coordination + memory sharing)
+   - **Deliverable:** End-to-end `git-copilot review` with parallel agents
+
+4. **M4** (Week 7): ReportWriter + Terminal/MD/HTML + built-in skills
+   - Terminal UI (Ink + Blessed): ProgressDashboard, AgentStatus
+   - Claude Skills manager (load 15+ built-in skills)
+   - Report generator with structured sections
+   - Markdown (terminal + file) and HTML (basic theme) exports
+   - **Deliverable:** Beautiful terminal progress + full report
+
+5. **M5** (Week 8): Git graph + dashboard + web-artifacts-builder
+   - Interactive Git graph UI (blessed, navigation with j/k, / search)
+   - Repository health dashboard (Ink UI with metrics)
+   - Web artifacts builder (interactive HTML dashboard with React)
+   - **Deliverable:** `git-copilot graph` (interactive) and `git-copilot dashboard`
+
+6. **M6** (Week 9): All export formats (docx/PDF/PPT/XLSX) + doc-coauthoring
+   - DOCX export (docx package, professional formatting)
+   - PDF export (pdf-lib or puppeteer, watermarking)
+   - PPTX export (pptxgenjs, slide layouts, themes)
+   - XLSX export (exceljs, multiple sheets, conditional formatting)
+   - Theme factory integration (10 themes for HTML/PPTX)
+   - **Deliverable:** All export formats functional via `git-copilot export`
+
+7. **M7** (Week 10): Release pipeline + npm/pipx/Homebrew publishing
+   - npm package publishing
+   - Homebrew tap setup
+   - GitHub Releases with pre-built binaries (pkg/nexe)
+   - Complete documentation (8+ markdown files)
+   - CI/CD pipeline (GitHub Actions)
+   - Pre-commit hooks
+   - **Deliverable:** v1.0.0 publicly released
+
+**Note on Beads:** M2 delivers core beads integration (external library + custom memory). Semantic search with embeddings is deferred to v1.1 to simplify MVP.
+
+**Critical Path:** M1 → M2 → M3 are sequential dependencies. M4-M6 can overlap if M3 is stable. M7 depends on all prior milestones.
 
 ## Notes
 
