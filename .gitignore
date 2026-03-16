@@ -51,3 +51,6 @@ temp/
 
 # Misc
 *.tgz
+
+# Dolt database files (added by bd init)
+.dolt/
