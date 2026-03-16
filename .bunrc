@@ -1,7 +1,0 @@
-# Bun configuration for git-copilot
-# Enable Bun-specific optimizations
-
-module:
-  ":bun": true
-target: es2022
-useDefineForClassFields: true

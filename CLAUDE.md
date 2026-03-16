@@ -20,10 +20,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Terminal UI**: Ink (React) + Blessed
 - **Git Operations**: simple-git
 - **Multi-agent**: PocketFlow (DAG workflow)
-- **Memory System**: Beads (core)
+- **Memory System**: Beads (external task coordination + custom findings storage)
 - **LLM Abstraction**: Custom Provider Adapter layer
 - **Config Storage**: YAML + keytar (encrypted API keys)
-- **Data Storage**: SQLite (better-sqlite3) for review history and long-term memories
+- **Data Storage**: SQLite (better-sqlite3) for custom findings store; steveyegge/beads uses Dolt
 - **Report Rendering**: Marked + marked-terminal + Shiki (syntax highlighting)
 - **Testing**: Vitest + Playwright
 
@@ -253,35 +253,120 @@ Stage 3: Report Generation
 
 All agents run concurrently using `AsyncParallelBatchNode` (default: 4 concurrent agents). Each agent writes to `shared_store.results[agent_name]`.
 
-### 2. Beads Memory System (Core Differentiator)
+### 2. Beads: Memory & Coordination System (External + Custom)
 
-**Bead** = structured memory unit with metadata:
-```javascript
-{
-  id: "uuid",
-  content: "string | object",
-  type: "code_snippet" | "issue_finding" | "agent_conclusion" | "repo_context" | "skill_knowledge" | "user_preference",
-  priority: 0-10,
-  ttl: seconds | "permanent",
-  tags: ["array"],
-  embedding?: float[],  // computed on retrieval
-  createdAt: Date,
-  agentSource?: "agent-name"
+git-copilot 使用**双系统**实现记忆与任务协调:
+
+```
+┌─────────────────────────────────────────────────────┐
+│          PocketFlow Multi-Agent Workflow            │
+├─────────────────────────────────────────────────────┤
+│  Coordination Layer: steveyegge/beads (Task Graph) │
+│  • Create/claim tasks (bd CLI)                     │
+│  • Dependency tracking & blocking detection        │
+│  • Distributed issue tracking (Dolt)               │
+├─────────────────────────────────────────────────────┤
+│  Memory Layer: Custom Findings Store (SQLite)      │
+│  • Store review findings with metadata            │
+│  • Keyword-based search (tags/content)            │
+│  • Fast retrieval (<100ms)                         │
+│  • Cross-task linking via relatedTaskId           │
+└─────────────────────────────────────────────────────┘
+```
+
+#### 2.1 External Beads (steveyegge/beads)
+
+**Role**: Task coordination & agent orchestration
+
+**Installation** (user must have `bd` available):
+```bash
+npm install -g @beads/bd    # 或 brew/Homebrew, 或 go install
+```
+
+**Key Commands** (used internally):
+- `bd create "Title" -p 0` - 创建 Epic/Sub-task
+- `bd update <id> --claim` - 原子认领任务
+- `bd dep add <child> <parent>` - 设置依赖关系
+- `bd ready --json` - 获取可执行任务 (无阻塞)
+- `bd close <id> "reason"` - 关闭任务
+
+**Integration Points**:
+- Workflow init: 创建 Epic Task (`git-copilot review` 时)
+- Agent execution: 每个 Agent 创建 sub-task 并 claim
+- Dependency graph: 可表达 Agent 间的串行/并行约束
+- Status tracking: 用户可随时 `bd show <id>` 查看进度
+
+#### 2.2 Custom Memory: Findings Storage
+
+**Role**: Fast retrieval of code review findings (semantic search v1.1)
+
+**Data Model** (FindingBead):
+```typescript
+interface FindingBead {
+  id: string;                    // UUID
+  type: 'security' | 'performance' | 'quality' | 'architecture';
+  content: string;               // 描述 + 代码片段 (max 2000 chars)
+  filePath?: string;
+  lineRange?: { start: number; end: number };
+  priority: number;              // 1-10
+  agentSource: string;
+  createdAt: Date;
+  tags: string[];                // ['xss', 'sql-injection', ...]
+  relatedTaskId?: string;        // 关联 beads Task ID (双向链接)
 }
 ```
 
-**Memory Flow:**
-1. During review: short-term beads stored in-memory, shared via `shared_store`
-2. Post-review: critical findings → long-term beads → SQLite persistence
-3. Next review: beads engine loads relevant historical beads (by tags/similarity)
-4. Cross-agent: SecurityAgent finding → auto-injected into PerformanceAgent context
+**Storage**: SQLite (`~/.git-copilot/data/findings.db`)
+**Retrieval**: Keyword search on `tags` and `content` (LIKE queries)
+**Retention**: 90 days (auto-cleanup)
 
-**Configuration:**
-- `beads.max_context_tokens`: 4096 (max beads injected per LLM call)
-- `beads.long_term_retention_days`: 90
-- `beads.embedding_model`: nomic-embed-text (via Ollama for local embedding)
-- `beads.cross_agent_sharing`: true
-- `beads.semantic_search_threshold`: 0.75
+**API** (MemoryManager):
+- `storeFinding(finding): Promise<string>` - 存储发现,返回 ID
+- `searchFindings(query, limit?): Promise<FindingBead[]>` - 关键词搜索
+- `getFindingsByTask(taskId): Promise<FindingBead[]>` - 获取任务关联的发现
+- `clearFindings(filter?): Promise<void>` - 清理 (TTL)
+
+**Context Injection**: Agent 执行前,调用 `memory.searchFindings(agentQuery)` 获取相关历史发现,注入到 LLM prompt 中(最多 4096 tokens)。
+
+#### 2.3 Cross-Agent Context Sharing
+
+**Pattern**:
+1. SecurityAgent 发现 XSS 问题 → 存储 finding with `relatedTaskId = taskId`
+2. PerformanceAgent 检索 → `memory.getFindingsByTask(taskId)` 或 `searchFindings("security")`
+3. 不同 Agent 的 findings 通过 `relatedTaskId` 自动关联
+
+**shared_store 用法**:
+```javascript
+// Workflow init
+shared_store.beadsEpicId = await beadsClient.createTask("Code review: PR#123");
+shared_store.memoryManager = await memoryManager.init();
+
+// Per agent
+const taskId = await beadsClient.createSubTask(shared_store.beadsEpicId, this.name);
+await beadsClient.claimTask(taskId);
+const context = await shared_store.memoryManager.searchFindings(this.getQuery());
+```
+
+#### 2.4 Configuration
+
+```yaml
+beads:
+  external:
+    enabled: true              # 使用 steveyegge/beads
+    autoInstall: false        # 自动安装提示 (默认 false)
+    cliPath: "bd"             # bd 命令路径
+    dataDir: ".beads"         # beads 存储目录
+
+  custom:
+    enabled: true
+    maxFindingsPerTask: 100
+    retentionDays: 90
+    maxContextTokens: 4096
+```
+
+**Env vars**:
+- `BEADS_DIR` - beads 数据目录覆盖
+- `GIT_COPILOT_BEADS_AUTO_INSTALL` - 自动安装 (true/false)
 
 ### 3. LLM Provider Abstraction
 
@@ -422,11 +507,25 @@ From Section 3.5 of the PRD:
 - Timeout handling (configurable per provider)
 - Graceful degradation: if one provider fails, optionally fallback to another
 
-### Beads Memory
-- Short-term: in-memory only, cleared after session
-- Long-term: SQLite, auto-expire after `retention_days`
-- Semantic search: use embedding model, cache embeddings
-- Cross-agent sharing: write beads to `shared_store.beads` array
+### Beads System (External + Custom)
+
+**External Beads (steveyegge/beads) - Task Coordination:**
+- Uses Dolt (SQL) database in `.beads/` directory
+- Task lifecycle: `create` → `claim` → `close`
+- Automatic blocking detection (`bd ready`)
+- No semantic search - pure task tracking
+
+**Custom Findings Store - Memory Layer:**
+- SQLite storage in `~/.git-copilot/data/findings.db`
+- Keyword search on `tags` and `content` fields
+- Fast retrieval (<100ms), token-aware truncation
+- Cross-task linking via `relatedTaskId`
+
+**Agent Integration:**
+- Workflow init: create epic task, inject `shared_store.beadsEpicId`
+- Per-agent: create sub-task, claim it, store findings with `relatedTaskId`
+- Context injection: `memory.searchFindings(query, maxTokens)`
+- Failure fallback: `beads.external.enabled=false` 时仅使用 Custom Memory
 
 ### Testing Strategy
 - Unit tests: individual agents, adapters, utils (Vitest)
@@ -452,12 +551,14 @@ Key sections of the PRD to reference:
 Follow the PRD's staged approach:
 
 1. **M1** (Weeks 1-2): CLI skeleton, config system, Git data collection
-2. **M2** (Weeks 3-4): LLM Adapter layer + basic agent framework (3 providers)
-3. **M3** (Weeks 5-6): PocketFlow parallel execution + all 7 agents
+2. **M2** (Weeks 3-4): LLM Adapter layer + Basic agent framework (3 providers) + **Beads integration (task coordination + custom memory)**
+3. **M3** (Weeks 5-6): PocketFlow parallel execution + all 7 agents + beads cross-agent integration
 4. **M4** (Week 7): ReportWriter + Terminal/MD/HTML + built-in skills
 5. **M5** (Week 8): Git graph + dashboard + web-artifacts-builder
-6. **M6** (Week 9): Beads memory + all export formats + doc-coauthoring
+6. **M6** (Week 9): All export formats (docx/PDF/PPT/XLSX) + doc-coauthoring
 7. **M7** (Week 10): Release pipeline + npm/pipx/Homebrew publishing
+
+**Note on Beads**: M2 delivers core beads integration (external library + custom memory). Semantic search (embeddings) is deferred to v1.1 to simplify MVP.
 
 ## Notes
 
@@ -476,4 +577,5 @@ Follow the PRD's staged approach:
 - **Anthropic Claude API**: https://docs.anthropic.com/claude/docs
 - **PocketFlow**: https://github.com/The-Pocket/PocketFlow
 - **Ink**: https://ink.js.org/
-- **Beads**: TBD (likely custom implementation per PRD specs)
+- **Beads (external)**: https://github.com/steveyegge/beads - Task coordination system (Dolt-powered)
+- **Beads npm**: `@beads/bd` (CLI binary, also library if available)
