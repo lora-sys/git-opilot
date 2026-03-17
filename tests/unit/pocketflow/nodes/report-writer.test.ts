@@ -99,49 +99,44 @@ describe('ReportWriterNode', () => {
     const report = await node.run(store)
 
     expect(report.format).toBe('html')
-    // HTML report should be a single section with full document
+    // HTML report should be a single section with full interactive dashboard
     expect(report.sections).toHaveLength(1)
     const html = report.sections[0].content
     expect(html).toContain('<!DOCTYPE html>')
     expect(html).toContain('<html')
-    expect(html).toContain('<h1>')
-    expect(html).toContain('Code Review Report')
+    expect(html).toContain('<div id="root"></div>')
+    expect(html).toContain('window.__REPORT_DATA__')
+    expect(html).toContain('bundle.js')
     expect(html).toContain('</html>')
   })
 
-  it('should include all subsections in HTML with proper tags', async () => {
+  it('should embed report data in HTML for client-side rendering', async () => {
     store.config = { output: { format: 'html' } }
     const report = await node.run(store)
 
     const html = report.sections[0].content
-    // Check for subsection headings
-    expect(html).toContain('<h2>Executive Summary</h2>')
-    expect(html).toContain('<h2>Findings by Agent</h2>')
-    expect(html).toContain('<h2>Detailed Findings</h2>')
-    // Check for finding details
-    expect(html).toContain('<h3')
-    expect(html).toContain('security')
-    expect(html).toContain('performance')
+    // Check that report data is embedded as JSON
+    expect(html).toContain('"totalFindings":2')
+    expect(html).toContain('"security":1')
+    expect(html).toContain('"performance":1')
+    // Branch name should be included
+    expect(html).toContain('feature/test')
   })
 
-  it('should escape HTML special characters in findings', async () => {
-    store.aggregated.findings = [
-      {
-        type: 'security',
-        severity: 'high',
-        filePath: 'src/index.js',
-        message: 'Alert("XSS") <script>',
-        agents: ['security'],
-        suggestion: 'Use <safe> methods',
-      },
-    ]
+  it('should use custom bundle path from config when provided', async () => {
+    store.config = { output: { format: 'html', bundlePath: '/custom/path/dashboard.js' } }
+    const report = await node.run(store)
+
+    const html = report.sections[0].content
+    expect(html).toContain('src="/custom/path/dashboard.js"')
+  })
+
+  it('should default to bundle.js if no bundle path specified', async () => {
     store.config = { output: { format: 'html' } }
     const report = await node.run(store)
 
     const html = report.sections[0].content
-    // Should have escaped characters
-    expect(html).toContain('&lt;script&gt;')
-    expect(html).toContain('&lt;safe&gt;')
+    expect(html).toContain('src="bundle.js"')
   })
 
   it('should handle empty findings gracefully', async () => {
