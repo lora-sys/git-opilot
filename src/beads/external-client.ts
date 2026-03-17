@@ -47,9 +47,11 @@ export interface BeadsTask {
 
 export class BeadsExternalClient {
   private cliPath: string
+  private dataDir: string
 
   constructor(config: BeadsExternalConfig) {
     this.cliPath = config.cliPath
+    this.dataDir = config.dataDir
   }
 
   async isInstalled(): Promise<boolean> {
@@ -119,7 +121,8 @@ export class BeadsExternalClient {
   }
 
   async exec(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
-    const command = `${this.cliPath} ${args.map(shellEscape).join(' ')}`
+    const dataDirArg = this.dataDir ? `--data-dir ${shellEscape(this.dataDir)}` : ''
+    const command = `${this.cliPath} ${dataDirArg} ${args.map(shellEscape).join(' ')}`.trim()
     const execFn = createExecFn()
     const result = await execFn(command)
     return result
