@@ -5,6 +5,8 @@ import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
+import { registerExportCommand } from './commands/export.js'
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Get version from package.json
@@ -67,14 +69,7 @@ program
   })
 
 // export command
-program
-  .command('export')
-  .description('Export review report')
-  .option('-f, --format <format>', 'Export format: md, html, docx, pdf, pptx, xlsx, json')
-  .option('-o, --output <path>', 'Output file path')
-  .action(() => {
-    console.log('Exporting report... (Not yet implemented)')
-  })
+registerExportCommand(program)
 
 // skills command
 program
