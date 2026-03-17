@@ -16,6 +16,7 @@
     "test": "vitest",
     "test:unit": "vitest tests/unit",
     "test:integration": "vitest tests/integration",
+    "test:integration:llm": "vitest tests/integration/llm",
     "test:e2e": "playwright test",
     "test:coverage": "vitest --coverage"
   },

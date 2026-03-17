@@ -2,11 +2,12 @@ import { LLMAdapter, LLMConfig } from './adapter.js'
 import { OpenAIAdapter } from './providers/openai.js'
 import { AnthropicAdapter } from './providers/anthropic.js'
 import { OllamaAdapter } from './providers/ollama.js'
+import { IFLowAdapter } from './providers/iflow.js'
 
 /**
  * Supported provider types
  */
-export type ProviderType = 'openai' | 'anthropic' | 'ollama'
+export type ProviderType = 'openai' | 'anthropic' | 'ollama' | 'iflow'
 
 /**
  * Factory for creating LLM adapters
@@ -19,6 +20,7 @@ export class LLMFactory {
     map.set('openai', OpenAIAdapter)
     map.set('anthropic', AnthropicAdapter)
     map.set('ollama', OllamaAdapter)
+    map.set('iflow', IFLowAdapter)
     LLMFactory.providers = map as Map<ProviderType, { new (): LLMAdapter }>
   }
 
