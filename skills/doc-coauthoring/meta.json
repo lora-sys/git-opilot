@@ -1,0 +1,8 @@
+{
+  "id": "doc-coauthoring",
+  "name": "Doc Coauthoring",
+  "description": "Provides expertise in doc coauthoring",
+  "category": "doc",
+  "priority": 10,
+  "tags": ["doc coauthoring"]
+}

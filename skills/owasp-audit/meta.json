@@ -1,0 +1,8 @@
+{
+  "id": "owasp-audit",
+  "name": "Owasp Audit",
+  "description": "Provides expertise in owasp audit",
+  "category": "owasp",
+  "priority": 10,
+  "tags": ["owasp audit"]
+}

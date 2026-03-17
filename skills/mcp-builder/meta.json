@@ -1,0 +1,8 @@
+{
+  "id": "mcp-builder",
+  "name": "Mcp Builder",
+  "description": "Provides expertise in mcp builder",
+  "category": "mcp",
+  "priority": 10,
+  "tags": ["mcp builder"]
+}

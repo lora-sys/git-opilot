@@ -1,0 +1,8 @@
+{
+  "id": "pdf",
+  "name": "Pdf",
+  "description": "Provides expertise in pdf",
+  "category": "pdf",
+  "priority": 10,
+  "tags": ["pdf"]
+}

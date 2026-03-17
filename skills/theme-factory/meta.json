@@ -1,0 +1,8 @@
+{
+  "id": "theme-factory",
+  "name": "Theme Factory",
+  "description": "Provides expertise in theme factory",
+  "category": "theme",
+  "priority": 10,
+  "tags": ["theme factory"]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "web-design-audit",
+  "name": "Web Design Audit",
+  "description": "Provides expertise in web design audit",
+  "category": "web",
+  "priority": 10,
+  "tags": ["web design audit"]
+}

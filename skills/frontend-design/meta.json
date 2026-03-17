@@ -1,0 +1,8 @@
+{
+  "id": "frontend-design",
+  "name": "Frontend Design",
+  "description": "Provides expertise in frontend design",
+  "category": "frontend",
+  "priority": 10,
+  "tags": ["frontend design"]
+}

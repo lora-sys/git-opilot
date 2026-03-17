@@ -1,0 +1,8 @@
+{
+  "id": "code-review",
+  "name": "Code Review",
+  "description": "Provides expertise in code review",
+  "category": "code",
+  "priority": 10,
+  "tags": ["code review"]
+}

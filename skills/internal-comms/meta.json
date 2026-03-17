@@ -1,0 +1,8 @@
+{
+  "id": "internal-comms",
+  "name": "Internal Comms",
+  "description": "Provides expertise in internal comms",
+  "category": "internal",
+  "priority": 10,
+  "tags": ["internal comms"]
+}

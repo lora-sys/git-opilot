@@ -1,0 +1,8 @@
+{
+  "id": "xlsx",
+  "name": "Xlsx",
+  "description": "Provides expertise in xlsx",
+  "category": "xlsx",
+  "priority": 10,
+  "tags": ["xlsx"]
+}

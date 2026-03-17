@@ -1,0 +1,8 @@
+{
+  "id": "web-artifacts-builder",
+  "name": "Web Artifacts Builder",
+  "description": "Provides expertise in web artifacts builder",
+  "category": "web",
+  "priority": 10,
+  "tags": ["web artifacts builder"]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "pptx",
+  "name": "Pptx",
+  "description": "Provides expertise in pptx",
+  "category": "pptx",
+  "priority": 10,
+  "tags": ["pptx"]
+}
