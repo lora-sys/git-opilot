@@ -1,5 +1,6 @@
 import { BaseAgent } from './base.js'
 import type { FileContent } from './types.js'
+import type { ChatMessage } from '../llm/adapter.js'
 
 /**
  * ArchitectureAgent evaluates code architecture and design quality.
@@ -16,16 +17,43 @@ import type { FileContent } from './types.js'
  */
 export class ArchitectureAgent extends BaseAgent {
   private static readonly SOURCE_EXTENSIONS = [
-    '.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte',
-    '.py', '.java', '.go', '.rs', '.rb', '.php', '.cs', '.scala', '.kt', '.kts',
-    '.c', '.cpp', '.h', '.hpp', '.m', '.mm', '.swift',
-    '.sh', '.bash', '.ps1', '.pl',
+    '.ts',
+    '.tsx',
+    '.js',
+    '.jsx',
+    '.vue',
+    '.svelte',
+    '.py',
+    '.java',
+    '.go',
+    '.rs',
+    '.rb',
+    '.php',
+    '.cs',
+    '.scala',
+    '.kt',
+    '.kts',
+    '.c',
+    '.cpp',
+    '.h',
+    '.hpp',
+    '.m',
+    '.mm',
+    '.swift',
+    '.sh',
+    '.bash',
+    '.ps1',
+    '.pl',
     '.sql',
   ]
 
   constructor(llm: any, deps: any) {
-    super('architecture', 'architecture', llm, {
-      systemPrompt: `You are a software architecture expert analyzing code for design quality and maintainability.
+    super(
+      'architecture',
+      'architecture',
+      llm,
+      {
+        systemPrompt: `You are a software architecture expert analyzing code for design quality and maintainability.
 
 Your task is to identify architectural and design issues:
 
@@ -55,9 +83,11 @@ For each finding, provide:
 Return a JSON array of findings. If no issues found, return empty array [].
 
 Focus on practical improvements and explain the reasoning.`,
-      temperature: 0.2,
-      maxTokens: 4000,
-    }, deps)
+        temperature: 0.2,
+        maxTokens: 4000,
+      },
+      deps
+    )
   }
 
   async analyze(files: FileContent[], context?: any): Promise<any> {
@@ -78,17 +108,14 @@ Focus on practical improvements and explain the reasoning.`,
   }
 
   protected filterFiles(files: FileContent[]): FileContent[] {
-    return files.filter(file => {
+    return files.filter((file) => {
       const ext = this.getExtension(file.path)
       return ArchitectureAgent.SOURCE_EXTENSIONS.includes(ext)
     })
   }
 
-  protected async buildPrompt(
-    files: FileContent[],
-    context?: any
-  ): Promise<{ role: string; content: string }[]> {
-    const fileList = files.map(f => `- ${f.path}`).join('\n')
+  protected async buildPrompt(files: FileContent[], context?: any): Promise<ChatMessage[]> {
+    const fileList = files.map((f) => `- ${f.path}`).join('\n')
 
     let contextSection = ''
     if (context && context.length > 0) {
@@ -149,19 +176,28 @@ Only return the JSON array, no other text.`
         suggestion: f.suggestion || undefined,
       }))
     } catch (error) {
-      return [{
-        type: 'parse_error',
-        severity: 'info',
-        message: `Failed to parse LLM response: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }]
+      return [
+        {
+          type: 'parse_error',
+          severity: 'info',
+          message: `Failed to parse LLM response: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+      ]
     }
   }
 
   private normalizeType(type: string): string {
     const normalized = type.toLowerCase().replace(/[^a-z0-9-]/g, '-')
     const valid = [
-      'coupling', 'cohesion', 'solid-violation', 'design-pattern',
-      'modularity', 'dependency-direction', 'layering', 'testability', 'other',
+      'coupling',
+      'cohesion',
+      'solid-violation',
+      'design-pattern',
+      'modularity',
+      'dependency-direction',
+      'layering',
+      'testability',
+      'other',
     ]
     return valid.includes(normalized) ? normalized : 'other'
   }

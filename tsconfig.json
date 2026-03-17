@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
@@ -24,7 +24,10 @@
     "jsx": "react",
     "jsxFactory": "React.createElement",
     "jsxFragmentFactory": "React.Fragment",
-    "allowImportingTsExtensions": true
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]

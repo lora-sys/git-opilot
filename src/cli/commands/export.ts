@@ -10,8 +10,8 @@ import { PdfExporter } from '@/reports/exporters/pdf'
 import { PptxExporter } from '@/reports/exporters/pptx'
 import { XlsxExporter } from '@/reports/exporters/xlsx'
 import { buildWebDashboard } from '@/reports/web-builder'
-import { ReportWriterNode } from '@/pocketflow/nodes/report-writer.js'
-import type { SharedStore } from '@/pocketflow/types.js'
+import { ReportWriterNode } from '@/pocketflow/nodes/report-writer'
+import type { SharedStore } from '@/pocketflow/types'
 
 export async function executeExport(options: { format: string; output?: string; range?: string }): Promise<void> {
   const configManager = new ConfigManager()

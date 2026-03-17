@@ -5,7 +5,7 @@ import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
-import { registerExportCommand } from './commands/export.js'
+import { registerExportCommand } from './commands/export'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
