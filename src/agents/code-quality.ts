@@ -134,18 +134,21 @@ Be precise. Include file paths and line numbers when possible.`
     // Build prompt
     const messages = await this.buildPrompt(relevantFiles, context)
 
-    // Call LLM
-    const response = await this.llm.chat(messages)
+    // Call LLM - returns content string
+    const content = await this.llm.chat(messages)
 
     // Parse response
-    const findings = this.parseResponse(response.content)
+    const findings = this.parseResponse(content)
+
+    // Count tokens used for response
+    const tokensUsed = await this.llm.countTokens(content)
 
     const duration = Math.max(1, Date.now() - startTime)
 
     return {
       agentName: this.name,
       findings,
-      tokensUsed: response.tokensUsed,
+      tokensUsed,
       duration,
     }
   }

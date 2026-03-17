@@ -35,7 +35,7 @@ export default class SkillsManager {
     this.skills = loaded.sort((a, b) => b.priority - a.priority)
   }
 
-  private loadFromDirectory(dir: string, source: 'built-in' | 'custom'): Skill[] {
+  private loadFromDirectory(dir: string, _source: 'built-in' | 'custom'): Skill[] {
     const skills: Skill[] = []
 
     try {
@@ -100,7 +100,7 @@ export default class SkillsManager {
     let result = this.skills
 
     if (tags && tags.length > 0) {
-      result = result.filter((skill) => tags.some((tag) => skill.tags.includes(tag)))
+      result = result.filter((skill) => tags.some((tag) => skill.tags?.includes(tag) ?? false))
     }
 
     // Also match by category if agentType matches a category

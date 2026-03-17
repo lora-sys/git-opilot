@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Text, useInput } from 'ink'
 import { buildGraphLayout } from '../git-graph.js'
 
@@ -38,7 +38,7 @@ export default function GitGraph({ commits, onSelect }: GitGraphProps) {
     <>
       <Text bold>Commit History (use j/k to navigate, Enter to select)</Text>
       {lines.map((line, idx) => (
-        <Text key={idx} color={idx === selectedIndex ? 'green' : undefined} bold={idx === selectedIndex}>
+        <Text key={idx} {...(idx === selectedIndex ? { color: 'green' } : {})} bold={idx === selectedIndex}>
           {line}
           {'\n'}
         </Text>

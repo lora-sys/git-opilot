@@ -5,6 +5,9 @@ import { buildWebDashboard } from '@/reports/web-builder.js'
 export class ReportWriterNode {
   async run(store: SharedStore): Promise<Report> {
     const aggregated = store.aggregated
+    if (!aggregated) {
+      throw new Error('Aggregated data is missing. Aggregator node must run before ReportWriterNode.')
+    }
     const config = store.config || {}
     const format = (config.output?.format || 'markdown') as Report['format']
     const now = new Date()

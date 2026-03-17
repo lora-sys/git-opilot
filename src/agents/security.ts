@@ -1,5 +1,6 @@
 import { BaseAgent } from './base.js'
 import type { FileContent } from './types.js'
+import type { ChatMessage } from '../llm/adapter.js'
 
 /**
  * SecurityAgent performs security analysis on code files.
@@ -100,16 +101,17 @@ Be precise and provide actionable recommendations.`,
   async analyze(files: FileContent[], context?: any): Promise<any> {
     const startTime = Date.now()
     const prompt = await this.buildPrompt(files, context)
-    const response = await this.llm.chat(prompt, {
+    const content = await this.llm.chat(prompt, {
       temperature: this.config.temperature,
       maxTokens: this.config.maxTokens,
     })
-    const findings = this.parseResponse(response.content)
+    const findings = this.parseResponse(content)
+    const tokensUsed = await this.llm.countTokens(content)
     const duration = Math.max(1, Date.now() - startTime)
     return {
       agentName: this.name,
       findings,
-      tokensUsed: response.tokensUsed,
+      tokensUsed,
       duration,
     }
   }
@@ -127,7 +129,7 @@ Be precise and provide actionable recommendations.`,
   /**
    * Build security-focused prompt with file list and optional context
    */
-  protected async buildPrompt(files: FileContent[], context?: any): Promise<{ role: string; content: string }[]> {
+  protected async buildPrompt(files: FileContent[], context?: any): Promise<ChatMessage[]> {
     const fileList = files.map((f) => `- ${f.path}`).join('\n')
 
     let contextSection = ''
@@ -173,7 +175,7 @@ If no vulnerabilities found, return [].
 
 Only return the JSON array, no other text.`
 
-    return [{ role: 'user', content }]
+    return [{ role: 'user', content } as ChatMessage]
   }
 
   /**

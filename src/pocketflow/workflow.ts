@@ -1,18 +1,19 @@
-import type { BaseAgent } from '../../agents/base.js'
-import type { FileContent } from '../../agents/types.js'
-import type { GitRepository } from '../../git/types.js'
-import { MemoryManager } from '../../beads/memory.js'
-import { BeadsExternalClient } from '../../beads/external-client.js'
-import type { WorkflowConfig, SharedStore, Report } from '../types.js'
-import { AgentParallelNode } from './nodes/async-parallel-batch.js'
-import { AggregatorNode } from './nodes/aggregator.js'
-import { ReportWriterNode } from './nodes/report-writer.js'
+import type { BaseAgent } from '../agents/base'
+import type { FileContent } from '../agents/types'
+import type { GitRepository } from '../git/types'
+import type { AgentResult } from '../agents/types'
+import { MemoryManager } from '../beads/memory'
+import { BeadsExternalClient } from '../beads/external-client'
+import type { SharedStore, Report } from './types'
+import { AgentParallelNode } from './nodes/async-parallel-batch'
+import { AggregatorNode } from './nodes/aggregator'
+import { ReportWriterNode } from './nodes/report-writer'
 
 export class ReviewWorkflow {
   private agents: BaseAgent[]
   private config: any // Combined workflow and app config
   private memory: MemoryManager
-  private beads?: BeadsExternalClient
+  private beads: BeadsExternalClient | undefined
   private parallelNode: AgentParallelNode
   private aggregator: AggregatorNode
   private reportWriter: ReportWriterNode
@@ -31,13 +32,13 @@ export class ReviewWorkflow {
     const store: SharedStore = {
       repo,
       files,
-      results: new Map(),
+      results: new Map<string, AgentResult>(),
       agentsCompleted: 0,
       totalAgents: this.agents.length,
       startTime: new Date(),
       memoryManager: this.memory,
-      beadsClient: this.beads,
       config: this.config,
+      ...(this.beads && { beadsClient: this.beads }),
     }
 
     // Create Beads epic if enabled

@@ -93,16 +93,17 @@ Focus on practical improvements and explain the reasoning.`,
   async analyze(files: FileContent[], context?: any): Promise<any> {
     const startTime = Date.now()
     const prompt = await this.buildPrompt(files, context)
-    const response = await this.llm.chat(prompt, {
+    const content = await this.llm.chat(prompt, {
       temperature: this.config.temperature,
       maxTokens: this.config.maxTokens,
     })
-    const findings = this.parseResponse(response.content)
+    const findings = this.parseResponse(content)
+    const tokensUsed = await this.llm.countTokens(content)
     const duration = Math.max(1, Date.now() - startTime)
     return {
       agentName: this.name,
       findings,
-      tokensUsed: response.tokensUsed,
+      tokensUsed,
       duration,
     }
   }

@@ -1,4 +1,3 @@
-import { Database } from 'better-sqlite3'
 import { v4 as uuidv4 } from 'uuid'
 
 export interface Finding {
@@ -14,9 +13,9 @@ export interface Finding {
 }
 
 export class MemoryManager {
-  private db: Database.Database
+  private db: any
 
-  constructor(db: Database.Database) {
+  constructor(db: any) {
     this.db = db
     this.initialize()
   }
@@ -73,7 +72,7 @@ export class MemoryManager {
       ORDER BY priority DESC, created_at DESC
       ${limit ? 'LIMIT ?' : ''}
     `
-    const params = [query, searchPattern, searchPattern]
+    const params: any[] = [query, searchPattern, searchPattern]
     if (limit) params.push(limit)
 
     const rows = this.db.prepare(sql).all(...params) as any[]
@@ -123,6 +122,6 @@ export class MemoryManager {
       createdAt: new Date(row.created_at),
       tags: JSON.parse(row.tags || '[]'),
       relatedTaskId: row.related_task_id,
-    }
+    } as any
   }
 }

@@ -38,8 +38,8 @@ export default function AgentStatus({ name, status, progress, findings, error }:
 
   return (
     <Text>
-      <Text color={statusColors[status]}>{statusIcons[status]}</Text> <Text color={agentColor}>{name}</Text>{' '}
-      <Text color={statusColors[status]}>{status.charAt(0).toUpperCase() + status.slice(1)}</Text> {progress}% (
+      <Text color={statusColors[status]!}>{statusIcons[status]!}</Text> <Text color={agentColor}>{name}</Text>{' '}
+      <Text color={statusColors[status]!}>{status.charAt(0).toUpperCase() + status.slice(1)}</Text> {progress}% (
       {findings} findings)
       {error && (
         <>

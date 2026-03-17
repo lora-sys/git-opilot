@@ -11,8 +11,8 @@ function shellEscape(arg: string): string {
 
 function createExecFn(): (command: string) => Promise<{ stdout: string; stderr: string; code: number }> {
   // If globalThis.exec is set (e.g., in tests), use it directly
-  if (typeof globalThis.exec === 'function') {
-    return globalThis.exec as (cmd: string) => Promise<{ stdout: string; stderr: string; code: number }>
+  if (typeof (globalThis as any).exec === 'function') {
+    return (globalThis as any).exec as (cmd: string) => Promise<{ stdout: string; stderr: string; code: number }>
   }
 
   // Otherwise, use node's exec with promisify and add code
@@ -47,11 +47,9 @@ export interface BeadsTask {
 
 export class BeadsExternalClient {
   private cliPath: string
-  private dataDir: string
 
   constructor(config: BeadsExternalConfig) {
     this.cliPath = config.cliPath
-    this.dataDir = config.dataDir
   }
 
   async isInstalled(): Promise<boolean> {
@@ -93,7 +91,7 @@ export class BeadsExternalClient {
   }
 
   async closeTask(taskId: string, reason: string): Promise<void> {
-    const result = await this.exec(['close', taskId, reason])
+    await this.exec(['close', taskId, reason])
     // Optionally check result.code but ignore
   }
 

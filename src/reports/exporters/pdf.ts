@@ -1,10 +1,10 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import type { Report } from '@/pocketflow/types'
 
 export class PdfExporter {
   async export(report: Report): Promise<Buffer> {
     const pdfDoc = await PDFDocument.create()
-    const page = pdfDoc.addPage([612, 792]) // Letter size (72 DPI)
+    let page = pdfDoc.addPage([612, 792]) // Letter size (72 DPI)
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
@@ -31,7 +31,7 @@ export class PdfExporter {
       }
 
       // Section title
-      this.drawText(page, section.title, leftMargin, y, 16, boldFont, rgb(0, 0.2, 0.6))
+      this.drawText(page, section.title, leftMargin, y, 16, boldFont, { r: 0, g: 0.2, b: 0.6 })
       y -= lineHeight
 
       // Section content: split by newlines to preserve paragraphs
@@ -67,9 +67,10 @@ export class PdfExporter {
     y: number,
     size: number,
     font: any,
-    color: { r: number; g: number; b: number } = rgb(0, 0, 0)
+    color?: { r: number; g: number; b: number }
   ) {
-    page.drawText(text, { x, y, size, font, color })
+    const c = color || { r: 0, g: 0, b: 0 }
+    page.drawText(text, { x, y, size, font, color: c })
   }
 
   private wrapText(text: string, font: any, fontSize: number, maxWidth: number): string[] {

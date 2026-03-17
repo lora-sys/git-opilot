@@ -52,7 +52,7 @@ export default function ReportViewer({ report, maxContentLength = 500 }: ReportV
       if (line.startsWith('# ')) {
         return (
           <Text key={idx}>
-            <Text color="white" bold reverse>
+            <Text color="white" bold>
               {line.slice(2)}
             </Text>
             {'\n'}
@@ -114,7 +114,7 @@ export default function ReportViewer({ report, maxContentLength = 500 }: ReportV
 
   return (
     <Text>
-      <Text color="white" bold reverse>
+      <Text color="white" bold>
         {' '}
         {report.title}{' '}
       </Text>
@@ -123,8 +123,8 @@ export default function ReportViewer({ report, maxContentLength = 500 }: ReportV
       {'\n'}
       {'\n'}
 
-      {report.sections.map((section) => (
-        <React.Fragment key={section.id}>
+      {report.sections.map((section, idx) => (
+        <React.Fragment key={idx}>
           <Text color="white" bold>
             {section.title}
           </Text>
@@ -144,9 +144,7 @@ export default function ReportViewer({ report, maxContentLength = 500 }: ReportV
         </React.Fragment>
       ))}
 
-      <Text color="gray" dim>
-        --- End of Report ---
-      </Text>
+      <Text color="gray">--- End of Report ---</Text>
     </Text>
   )
 }

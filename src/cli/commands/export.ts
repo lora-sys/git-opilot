@@ -1,94 +1,157 @@
-import type { Command } from 'commander'
-import { ConfigManager } from '@/config/manager'
-import { GitCollector } from '@/git/collector'
-import { LLMFactory } from '@/llm/factory'
-import { ReviewWorkflow } from '@/pocketflow/workflow'
-import { BeadsExternalClient } from '@/beads/external-client'
-import { MemoryManager } from '@/beads/memory'
-import { DocxExporter } from '@/reports/exporters/docx'
-import { PdfExporter } from '@/reports/exporters/pdf'
-import { PptxExporter } from '@/reports/exporters/pptx'
-import { XlsxExporter } from '@/reports/exporters/xlsx'
-import { buildWebDashboard } from '@/reports/web-builder'
-import { ReportWriterNode } from '@/pocketflow/nodes/report-writer'
-import type { SharedStore } from '@/pocketflow/types'
+#!/usr/bin/env node
+
+import { writeFileSync, existsSync, mkdirSync } from 'fs'
+import { join, dirname } from 'path'
+import { homedir } from 'os'
+import { ConfigManager } from '@/config/manager.js'
+import { GitCollector } from '@/git/collector.js'
+import { LLMFactory } from '@/llm/factory.js'
+import { ReviewWorkflow } from '@/pocketflow/workflow.js'
+import { BeadsExternalClient } from '@/beads/external-client.js'
+import { MemoryManager } from '@/beads/memory.js'
+import { DocxExporter } from '@/reports/exporters/docx.js'
+import { PdfExporter } from '@/reports/exporters/pdf.js'
+import { PptxExporter } from '@/reports/exporters/pptx.js'
+import { XlsxExporter } from '@/reports/exporters/xlsx.js'
+import type { ProviderType } from '@/llm/factory.js'
+import type { FileContent } from '@/agents/types.js'
+import type { GitRepository } from '@/git/types.js'
+import type { AgentDependencies } from '@/agents/types.js'
+import Database from 'better-sqlite3'
+
+// Simple logger
+const logger = {
+  debug: (...args: any[]) => console.debug('[git-copilot]', ...args),
+  info: (...args: any[]) => console.info('[git-copilot]', ...args),
+  warn: (...args: any[]) => console.warn('[git-copilot]', ...args),
+  error: (...args: any[]) => console.error('[git-copilot]', ...args),
+}
+
+function createMemoryDb(): Database {
+  const dataDir = join(homedir(), '.git-copilot', 'data')
+  if (!existsSync(dataDir)) {
+    mkdirSync(dataDir, { recursive: true })
+  }
+  const dbPath = join(dataDir, 'findings.db')
+  return new Database(dbPath)
+}
+
+function isIgnored(filePath: string, ignorePatterns: string[]): boolean {
+  return ignorePatterns.some((pattern) => filePath.includes(pattern) || filePath.startsWith(pattern))
+}
 
 export async function executeExport(options: { format: string; output?: string; range?: string }): Promise<void> {
+  // Load configuration
   const configManager = new ConfigManager()
-  const config = await configManager.load()
+  const config = await configManager.loadConfig()
 
   // Validate format
-  const validFormats = ['terminal', 'markdown', 'html', 'json', 'docx', 'pdf', 'pptx', 'xlsx']
-  if (!validFormats.includes(options.format)) {
+  const validFormats: Array<'terminal' | 'markdown' | 'html' | 'json' | 'docx' | 'pdf' | 'pptx' | 'xlsx'> = [
+    'terminal',
+    'markdown',
+    'html',
+    'json',
+    'docx',
+    'pdf',
+    'pptx',
+    'xlsx',
+  ]
+  if (!validFormats.includes(options.format as any)) {
     throw new Error(`Invalid format: ${options.format}. Valid formats: ${validFormats.join(', ')}`)
   }
 
-  // Gather git data
-  const gitCollector = new GitCollector()
-  const range = options.range || config.review?.defaultRange || 'HEAD~10..HEAD'
-  const gitData = await gitCollector.collect(range)
+  // Set output format in config (for ReportWriterNode)
+  config.output = { ...config.output, format: options.format as any }
+
+  // Initialize Git collector
+  const git = new GitCollector()
+
+  // Gather repository information
+  const repoInfo = await git.getRepositoryInfo()
+  const tags = await git.getTags()
+  const status = await git.getStatus()
+
+  // Get commit history (limited)
+  const maxCommits = 100
+  const commits = await git.getCommitHistory({ maxCommits })
+
+  // Get all tracked files and their content
+  const trackedFiles = await git.getAllTrackedFiles()
+  const files: FileContent[] = []
+  for (const filePath of trackedFiles) {
+    // Skip ignored files
+    if (isIgnored(filePath, config.review.ignorePatterns)) continue
+    // Limit number of files
+    if (files.length >= config.review.maxFilesPerAgent) break
+    try {
+      const content = await git.getFileContent(filePath)
+      files.push({ path: filePath, content })
+    } catch (err: any) {
+      // Skip files that can't be read
+      logger.warn(`Could not read file ${filePath}: ${err.message}`)
+    }
+  }
+
+  // Build repository object
+  const repo: GitRepository = {
+    root: repoInfo.root,
+    currentBranch: repoInfo.currentBranch,
+    branches: repoInfo.branches,
+    tags,
+    latestCommits: commits,
+    status,
+  }
 
   // Create LLM adapter
   const providerConfig = config.providers.find((p) => p.name === config.activeProvider)
   if (!providerConfig) {
     throw new Error('No active LLM provider configured')
   }
-  const llmAdapter = LLMFactory.create(providerConfig)
+  if (!providerConfig.apiKey) {
+    throw new Error(
+      `API key not set for provider ${providerConfig.name}. Please configure with 'git-copilot config set providers.${providerConfig.name}.apiKey <your-key>'`
+    )
+  }
+  const providerName = providerConfig.name as ProviderType
+  const llmAdapter = LLMFactory.create(providerName, {
+    apiKey: providerConfig.apiKey,
+    baseUrl: providerConfig.baseUrl,
+    model: providerConfig.model,
+  })
 
-  // Initialize Beads if enabled
+  // Initialize Beads external client if enabled
   let beadsClient: BeadsExternalClient | null = null
-  if (config.beads?.external?.enabled) {
+  if (config.beads.external.enabled) {
     beadsClient = new BeadsExternalClient(config.beads.external)
     await beadsClient.init()
   }
 
   // Initialize custom memory
-  const memoryManager = new MemoryManager(config.beads?.custom)
-  await memoryManager.init()
+  const memoryDb = createMemoryDb()
+  const memoryManager = new MemoryManager(memoryDb)
 
   // Create agents
+  const agentDeps: AgentDependencies = {
+    logger,
+    memory: memoryManager,
+    ...(beadsClient && { beadsClient: beadsClient }),
+  }
   const agents = [
-    new (await import('@/agents/code-quality')).CodeQualityAgent(),
-    new (await import('@/agents/security')).SecurityAgent(),
-    new (await import('@/agents/performance')).PerformanceAgent(),
-    new (await import('@/agents/architecture')).ArchitectureAgent(),
-    new (await import('@/agents/dependency')).DependencyAgent(),
-    new (await import('@/agents/git-history')).GitHistoryAgent(),
+    new (await import('@/agents/code-quality')).CodeQualityAgent(llmAdapter, agentDeps),
+    new (await import('@/agents/security')).SecurityAgent(llmAdapter, agentDeps),
+    new (await import('@/agents/performance')).PerformanceAgent(llmAdapter, agentDeps),
+    new (await import('@/agents/architecture')).ArchitectureAgent(llmAdapter, agentDeps),
+    new (await import('@/agents/dependency')).DependencyAgent(llmAdapter, agentDeps),
+    new (await import('@/agents/git-history')).GitHistoryAgent(llmAdapter, agentDeps),
   ]
 
   // Create and run workflow
-  const workflow = new ReviewWorkflow()
-  const sharedStore = await workflow.run({
-    config: config,
-    gitData,
-    llmAdapter,
-    beadsClient,
-    memoryManager,
-    agents,
-  })
+  const workflow = new ReviewWorkflow(agents, config, memoryManager, beadsClient || undefined)
+  const report = await workflow.run(files, repo)
 
-  // Set the desired output format in config for ReportWriterNode
-  const storeWithFormat: SharedStore = {
-    ...sharedStore,
-    config: {
-      ...sharedStore.config,
-      output: {
-        ...sharedStore.config?.output,
-        format: options.format as any,
-      },
-    },
-  }
-
-  // Generate report using ReportWriterNode
-  const reportWriter = new ReportWriterNode()
-  const report = await reportWriter.run(storeWithFormat)
-
-  // For binary formats (docx, pdf, pptx, xlsx), the report sections contain the file content
-  // Actually ReportWriterNode only generates markdown/terminal/html. For binary formats we need to use exporters directly.
-  // So we need to handle binary formats separately.
-
+  // Handle output based on format
   let outputBuffer: Buffer | undefined
-  let outputString = report.sections.map((s) => `## ${s.title}\n\n${s.content}`).join('\n---\n\n')
+  let outputString = ''
 
   if (options.format === 'json') {
     outputString = JSON.stringify(report, null, 2)
@@ -105,25 +168,24 @@ export async function executeExport(options: { format: string; output?: string; 
     const exporter = new XlsxExporter()
     outputBuffer = await exporter.export(report)
   } else if (options.format === 'html') {
-    // ReportWriterNode already generates HTML in a single section
-    outputString = report.sections[0]?.content || outputString
+    outputString = report.sections[0]?.content || ''
+  } else {
+    // terminal or markdown
+    outputString = report.sections.map((s) => `## ${s.title}\n\n${s.content}`).join('\n---\n\n')
   }
-  // markdown and terminal use outputString as is
 
   // Write output
   if (options.output) {
-    const fs = await import('fs')
-    const dir = require('path').dirname(options.output)
-    if (dir && !fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true })
+    const outDir = dirname(options.output)
+    if (outDir && !existsSync(outDir)) {
+      mkdirSync(outDir, { recursive: true })
     }
     if (outputBuffer !== undefined) {
-      fs.writeFileSync(options.output, outputBuffer)
+      writeFileSync(options.output, outputBuffer)
     } else {
-      fs.writeFileSync(options.output, outputString)
+      writeFileSync(options.output, outputString)
     }
   } else {
-    // Write to stdout
     if (outputBuffer !== undefined) {
       process.stdout.write(outputBuffer)
     } else {
@@ -139,7 +201,7 @@ export function registerExportCommand(program: any) {
     .option('-f, --format <format>', 'Export format: terminal, markdown, html, json, docx, pdf, pptx, xlsx')
     .option('-o, --output <path>', 'Output file path')
     .option('-r, --range <range>', 'Commit range to export (e.g., HEAD~3..HEAD)')
-    .action(async (options: { format?: string; output?: string; range?: string }) => {
+    .action(async (options: { format: string; output?: string; range?: string }) => {
       if (!options.format) {
         console.error('Error: --format is required')
         process.exit(1)

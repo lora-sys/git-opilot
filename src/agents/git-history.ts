@@ -1,5 +1,6 @@
 import { BaseAgent } from './base.js'
 import type { FileContent } from './types.js'
+import type { ChatMessage } from '../llm/adapter.js'
 
 /**
  * GitHistoryAgent analyzes git commit history for issues.
@@ -89,16 +90,17 @@ Note: The analysis is based on the git commit history provided in the context (p
   async analyze(files: FileContent[], context?: any): Promise<any> {
     const startTime = Date.now()
     const prompt = await this.buildPrompt(files, context)
-    const response = await this.llm.chat(prompt, {
+    const content = await this.llm.chat(prompt, {
       temperature: this.config.temperature,
       maxTokens: this.config.maxTokens,
     })
-    const findings = this.parseResponse(response.content)
+    const findings = this.parseResponse(content)
+    const tokensUsed = await this.llm.countTokens(content)
     const duration = Math.max(1, Date.now() - startTime)
     return {
       agentName: this.name,
       findings,
-      tokensUsed: response.tokensUsed,
+      tokensUsed,
       duration,
     }
   }
@@ -110,7 +112,7 @@ Note: The analysis is based on the git commit history provided in the context (p
     })
   }
 
-  protected async buildPrompt(files: FileContent[], context?: any): Promise<{ role: string; content: string }[]> {
+  protected async buildPrompt(files: FileContent[], context?: any): Promise<ChatMessage[]> {
     const fileList = files.map((f) => `- ${f.path}`).join('\n')
 
     let contextSection = ''
