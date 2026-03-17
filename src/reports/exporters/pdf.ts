@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import type { Report } from '@/pocketflow/types'
 
 export class PdfExporter {
@@ -31,7 +31,7 @@ export class PdfExporter {
       }
 
       // Section title
-      this.drawText(page, section.title, leftMargin, y, 16, boldFont, { r: 0, g: 0.2, b: 0.6 })
+      this.drawText(page, section.title, leftMargin, y, 16, boldFont, rgb(0, 0.2, 0.6))
       y -= lineHeight
 
       // Section content: split by newlines to preserve paragraphs
@@ -60,16 +60,8 @@ export class PdfExporter {
     return Buffer.from(pdfBytes)
   }
 
-  private drawText(
-    page: any,
-    text: string,
-    x: number,
-    y: number,
-    size: number,
-    font: any,
-    color?: { r: number; g: number; b: number }
-  ) {
-    const c = color || { r: 0, g: 0, b: 0 }
+  private drawText(page: any, text: string, x: number, y: number, size: number, font: any, color?: any) {
+    const c = color || rgb(0, 0, 0)
     page.drawText(text, { x, y, size, font, color: c })
   }
 

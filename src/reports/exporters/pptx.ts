@@ -72,7 +72,7 @@ export class PptxExporter {
     }
 
     // Generate PPTX as a buffer
-    const buffer = await pptx.writeToBuffer()
+    const buffer = await pptx.write({ outputType: 'nodebuffer' })
     return Buffer.from(buffer)
   }
 }

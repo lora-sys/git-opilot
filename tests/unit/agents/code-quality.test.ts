@@ -6,7 +6,8 @@ import type { FileContent, AgentDependencies, SharedStore } from '@/agents/types
 // Mock LLM
 const createMockLLM = (responseContent: string, tokensUsed: number = 100) => {
   return {
-    chat: vi.fn().mockResolvedValue({ content: responseContent, tokensUsed }),
+    chat: vi.fn().mockResolvedValue(responseContent),
+    countTokens: vi.fn().mockResolvedValue(tokensUsed),
   } as unknown as LLMAdapter
 }
 

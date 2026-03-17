@@ -1,6 +1,6 @@
 {
   "name": "git-copilot",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Intelligent CLI code collaboration assistant for Git repositories with multi-agent code review",
   "type": "module",
   "bin": {

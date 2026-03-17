@@ -5,7 +5,7 @@ declare module 'pptxgenjs' {
     subject?: string
 
     addSlide(): Slide
-    writeToBuffer(): Promise<Buffer>
+    write(options?: { outputType?: 'nodebuffer' | 'base64' | 'blob' }): Promise<Buffer | string>
   }
 
   export interface Slide {

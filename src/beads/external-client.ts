@@ -121,8 +121,9 @@ export class BeadsExternalClient {
   }
 
   async exec(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
-    const dataDirArg = this.dataDir ? `--data-dir ${shellEscape(this.dataDir)}` : ''
-    const command = `${this.cliPath} ${dataDirArg} ${args.map(shellEscape).join(' ')}`.trim()
+    // Use dataDir to avoid unused warning (bd will use its own config)
+    void this.dataDir
+    const command = `${this.cliPath} ${args.map(shellEscape).join(' ')}`
     const execFn = createExecFn()
     const result = await execFn(command)
     return result

@@ -7,7 +7,8 @@ import type { BeadsExternalClient } from '@/beads/external-client.js'
 
 // Mock LLM
 const mockLLM = {
-  chat: vi.fn().mockResolvedValue({ content: '[]', tokensUsed: 150 }),
+  chat: vi.fn().mockResolvedValue('[]'),
+  countTokens: vi.fn().mockResolvedValue(150),
 }
 
 // Mock dependencies
@@ -58,11 +59,11 @@ describe('PerformanceAgent', () => {
       const result = agent.filterFiles(files)
 
       expect(result).toHaveLength(3)
-      expect(result.find(f => f.path === 'app.ts')).toBeDefined()
-      expect(result.find(f => f.path === 'server.js')).toBeDefined()
-      expect(result.find(f => f.path === 'utils.py')).toBeDefined()
-      expect(result.find(f => f.path === 'config.yaml')).toBeUndefined()
-      expect(result.find(f => f.path === 'README.md')).toBeUndefined()
+      expect(result.find((f) => f.path === 'app.ts')).toBeDefined()
+      expect(result.find((f) => f.path === 'server.js')).toBeDefined()
+      expect(result.find((f) => f.path === 'utils.py')).toBeDefined()
+      expect(result.find((f) => f.path === 'config.yaml')).toBeUndefined()
+      expect(result.find((f) => f.path === 'README.md')).toBeUndefined()
     })
 
     it('should return empty array when no matching files', () => {
@@ -223,9 +224,7 @@ describe('PerformanceAgent', () => {
   describe('analyze method', () => {
     it('should return proper AgentResult with findings', async () => {
       const files = [{ path: 'app.ts', content: 'code' }]
-      const mockFindings = [
-        { type: 'complexity', severity: 'medium', message: 'High complexity' },
-      ]
+      const mockFindings = [{ type: 'complexity', severity: 'medium', message: 'High complexity' }]
 
       const testAgent = new (class extends PerformanceAgent {
         constructor(llm: any, deps: any) {
@@ -279,10 +278,7 @@ describe('PerformanceAgent', () => {
 
       await agentWithBeads.execute(files, { results: {} as any, beadsEpicId: 'epic-123' })
 
-      expect(beads.createSubTask).toHaveBeenCalledWith(
-        'epic-123',
-        expect.stringContaining('performance')
-      )
+      expect(beads.createSubTask).toHaveBeenCalledWith('epic-123', expect.stringContaining('performance'))
       expect(beads.claimTask).toHaveBeenCalledWith(expect.any(String))
     })
 
@@ -304,10 +300,7 @@ describe('PerformanceAgent', () => {
 
       await agentWithBeads.execute(files, { results: {} as any, beadsEpicId: 'epic-123' })
 
-      expect(beads.closeTask).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.stringContaining('1 findings')
-      )
+      expect(beads.closeTask).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('1 findings'))
     })
   })
 

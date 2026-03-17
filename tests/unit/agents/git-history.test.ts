@@ -7,7 +7,8 @@ import type { BeadsExternalClient } from '@/beads/external-client.js'
 
 // Mock LLM
 const mockLLM = {
-  chat: vi.fn().mockResolvedValue({ content: '[]', tokensUsed: 180 }),
+  chat: vi.fn().mockResolvedValue('[]'),
+  countTokens: vi.fn().mockResolvedValue(180),
 }
 
 // Mock dependencies
